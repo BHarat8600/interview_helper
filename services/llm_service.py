@@ -7,7 +7,7 @@ import re
 from fastapi import HTTPException, status
 from groq import AsyncGroq, AuthenticationError
 
-from backend.config import get_groq_api_key, settings
+from config import get_groq_api_key, settings
 
 
 class LLMService:
