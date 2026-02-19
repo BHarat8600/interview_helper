@@ -8,10 +8,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.config import is_groq_key_configured, settings
-from backend.models.schemas import ErrorResponse, ProcessAudioResponse
-from backend.services.llm_service import LLMService
-from backend.services.transcription import TranscriptionService
+from config import is_groq_key_configured, settings
+from models.schemas import ErrorResponse, ProcessAudioResponse
+from services.llm_service import LLMService
+from services.transcription import TranscriptionService
 
 
 def configure_logging() -> None:
