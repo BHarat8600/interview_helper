@@ -18,7 +18,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "AI Interview Backend"
+    app_name: str = "Secure Desktop Assistant Backend"
     app_env: str = "production"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
@@ -42,16 +42,16 @@ class Settings(BaseSettings):
     cors_allow_headers: str = "*"
     max_audio_size_mb: int = 15
 
+    database_url: str = Field(default="sqlite+aiosqlite:///./assistant.db", alias="DATABASE_URL")
+    jwt_secret_key: str = Field(default="change-me-in-env", alias="JWT_SECRET_KEY")
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+
 
 settings = Settings()
 
 
 def get_groq_api_key() -> str:
-    """
-    Returns a normalized Groq API key from settings:
-    - strips surrounding whitespace
-    - strips surrounding single/double quotes
-    """
     raw = (settings.groq_api_key or "").strip()
     if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in {"'", '"'}:
         raw = raw[1:-1].strip()

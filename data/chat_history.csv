@@ -1,0 +1,11 @@
+id,user_id,role,content,created_at
+1,4,user,hi how are you doing,2026-02-22T16:14:39.509336+00:00
+2,4,assistant,"I'm doing well, thank you for asking.",2026-02-22T16:14:39.537392+00:00
+3,4,user,are you student,2026-02-22T16:19:48.608344+00:00
+4,4,assistant,"No, I am a professional technical consultant.",2026-02-22T16:19:48.665393+00:00
+5,5,user,"Peng Speakers Can we go forward Men UK Straight down, just in steps.",2026-02-22T16:48:35.472233+00:00
+6,5,assistant,"We can proceed with the implementation in a phased approach, starting with the initial steps and progressing downwards. This will allow us to assess and validate each step before moving forward. We'll work closely with your team to ensure a smooth transition.",2026-02-22T16:48:35.503106+00:00
+7,5,user,Easy as you like it. Another booking post for India. Actually goes for one India. 88 for eight. I'm looking for these two. My line is two.,2026-02-22T16:48:52.609965+00:00
+8,5,assistant,"For the booking post for India, I recommend the following: Two India, 88 for eight.",2026-02-22T16:48:52.634723+00:00
+9,5,user,What is data modeling in Power BI?,2026-02-22T16:49:44.323623+00:00
+10,5,assistant,"Data modeling in Power BI is the process of creating a logical representation of your data to facilitate analysis and visualization. It involves defining relationships between tables, creating measures, and establishing data hierarchies. This enables users to easily navigate and analyze complex data sets. Effective data modeling is crucial for delivering actionable insights in Power BI.",2026-02-22T16:49:44.359034+00:00
