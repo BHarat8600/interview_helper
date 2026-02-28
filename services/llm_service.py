@@ -34,7 +34,8 @@ class LLMService:
             "Interview question:\n"
             f"{transcription}\n\n"
             "Answer as if you are explaining this to an interviewer. "
-            "Keep it short, clear, and easy to explain in an interview."
+            "Keep it short, clear, cover each part of question and easy to explain in an interview."
+            "coding part should in *** code ****"
         )
         try:
             response = await asyncio.wait_for(
