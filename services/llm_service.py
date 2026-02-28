@@ -23,12 +23,19 @@ class LLMService:
 
         client = AsyncGroq(api_key=get_groq_api_key())
 
-        user_prompt = (
-            "Client question/transcript:\n"
-            f"{transcription}\n\n"
-            "Return only the final meeting-ready answer."
-        )
+        # user_prompt = (
+        #     "Client question/transcript:\n"
+        #     f"{transcription}\n\n"
+        #     "Return only the final meeting-ready answer."
+        # )
 
+    ###=============update on 02-28-2026 =========================
+        user_prompt = (
+            "Interview question:\n"
+            f"{transcription}\n\n"
+            "Answer as if you are explaining this to an interviewer. "
+            "Keep it short, clear, and easy to explain in an interview."
+        )
         try:
             response = await asyncio.wait_for(
                 client.chat.completions.create(
