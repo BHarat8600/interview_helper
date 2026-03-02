@@ -1,0 +1,15 @@
+id,user_id,username,endpoint_key,path,method,status_code,is_llm,created_at
+1,,,get:/,/,GET,404,false,2026-03-02T20:11:04.945163+00:00
+2,,,get:/favicon.ico,/favicon.ico,GET,404,false,2026-03-02T20:11:04.969160+00:00
+3,,,get:/docs,/docs,GET,200,false,2026-03-02T20:11:15.375420+00:00
+4,,,get:/openapi.json,/openapi.json,GET,200,false,2026-03-02T20:11:15.669106+00:00
+5,,,admin.options,/admin/login,OPTIONS,200,false,2026-03-02T20:20:12.942287+00:00
+6,,,admin.post,/admin/login,POST,200,false,2026-03-02T20:20:12.965068+00:00
+7,,,admin.options,/admin/stats,OPTIONS,200,false,2026-03-02T20:20:12.969819+00:00
+8,,,admin.options,/admin/users,OPTIONS,200,false,2026-03-02T20:20:12.970456+00:00
+9,,,admin.options,/admin/apis,OPTIONS,200,false,2026-03-02T20:20:12.972871+00:00
+10,,,admin.options,/admin/logs/api,OPTIONS,200,false,2026-03-02T20:20:12.973475+00:00
+11,,,admin.get,/admin/users,GET,200,false,2026-03-02T20:20:12.980644+00:00
+12,,,admin.get,/admin/stats,GET,200,false,2026-03-02T20:20:12.980949+00:00
+13,,,admin.get,/admin/apis,GET,200,false,2026-03-02T20:20:12.982708+00:00
+14,,,admin.get,/admin/logs/api,GET,200,false,2026-03-02T20:20:12.983774+00:00

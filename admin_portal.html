@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f7f2;
+      --card: #ffffff;
+      --ink: #112015;
+      --muted: #5b6e60;
+      --accent: #1f8a4d;
+      --accent-2: #0f5132;
+      --warn: #c2410c;
+      --danger: #b42318;
+      --border: #d8e2d9;
+      --shadow: 0 12px 30px rgba(17, 32, 21, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, #d8f4d8 0%, transparent 40%),
+        radial-gradient(circle at 100% 10%, #dff0ff 0%, transparent 40%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 16px 32px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.2rem, 2vw, 1.8rem);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .login-wrap {
+      max-width: 480px;
+      margin: 60px auto 0;
+    }
+
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font: inherit;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: #e9f4ed; color: var(--accent-2); }
+    .btn-danger { background: #fee4e2; color: var(--danger); }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .tab {
+      background: #ecf2ec;
+      color: #1f3a28;
+    }
+    .tab.active {
+      background: #d5f2dd;
+      color: #0b3d20;
+      border: 1px solid #b9e7c5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #fff, #f9fcf9);
+    }
+    .metric .label { color: var(--muted); font-size: 0.82rem; }
+    .metric .value { font-size: 1.3rem; font-weight: 700; margin-top: 5px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      border-bottom: 1px solid #edf2ee;
+      text-align: left;
+      padding: 10px 8px;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; }
+    tr:hover td { background: #f9fcfa; }
+
+    .status {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .ok { background: #dbfce7; color: #0f7b40; }
+    .off { background: #f3f4f6; color: #5f6b75; }
+    .err { background: #fee4e2; color: #b42318; }
+
+    .hidden { display: none; }
+    .msg {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .msg.error { background: #fee4e2; color: #912018; }
+    .msg.success { background: #dcfce7; color: #14532d; }
+
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; }
+      .container { margin-top: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loginView" class="login-wrap card">
+      <h2 style="margin:0 0 12px;">Admin Login</h2>
+      <div class="field">
+        <label>API Base URL</label>
+        <input id="apiBase" value="http://0.0.0.0:8000" />
+      </div>
+      <div class="field">
+        <label>Username</label>
+        <input id="adminUsername" value="admin" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="adminPassword" type="password" value="admin@123" />
+      </div>
+      <button id="loginBtn" class="btn-primary">Login</button>
+      <div id="loginMsg"></div>
+    </div>
+
+    <div id="dashboardView" class="hidden">
+      <div class="topbar">
+        <div>
+          <h1 class="title">Usage & LLM Control Dashboard</h1>
+          <p class="subtitle">Manage users, APIs, limits, monitoring, and logs</p>
+        </div>
+        <div class="row">
+          <button id="refreshAllBtn" class="btn-secondary">Refresh</button>
+          <button id="logoutBtn" class="btn-danger">Logout</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="users">Users</button>
+        <button class="tab" data-tab="apis">APIs</button>
+        <button class="tab" data-tab="logs">Logs</button>
+      </div>
+
+      <div id="overviewTab" class="card tab-pane">
+        <div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+          <h3 style="margin:0;">System Stats</h3>
+          <div class="row">
+            <button id="toggleGlobalLlmBtn" class="btn-secondary">Toggle Global LLM</button>
+            <button id="toggleServiceBtn" class="btn-secondary">Activate/Deactivate Service</button>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="metric"><div class="label">Total Users</div><div class="value" id="mTotalUsers">0</div></div>
+          <div class="metric"><div class="label">Active Users</div><div class="value" id="mActiveUsers">0</div></div>
+          <div class="metric"><div class="label">Total API Requests</div><div class="value" id="mApiReq">0</div></div>
+          <div class="metric"><div class="label">Total LLM Requests</div><div class="value" id="mLlmReq">0</div></div>
+        </div>
+        <div id="overviewMsg"></div>
+      </div>
+
+      <div id="usersTab" class="card tab-pane hidden">
+        <h3 style="margin:0 0 10px;">User Management</h3>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Created</th>
+                <th>Last Login</th>
+                <th>API Count</th>
+                <th>LLM Count</th>
+                <th>Status</th>
+                <th>LLM</th>
+                <th>Daily Limit</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+        <div id="usersMsg"></div>
+      </div>
+
+      <div id="apisTab" class="card tab-pane hidden">
+        <h3 style="margin:0 0 10px;">API Controls</h3>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr><th>Endpoint</th><th>Enabled</th><th>Action</th></tr>
+            </thead>
+            <tbody id="apisBody"></tbody>
+          </table>
+        </div>
+        <div id="apisMsg"></div>
+      </div>
+
+      <div id="logsTab" class="card tab-pane hidden">
+        <div class="row" style="justify-content: space-between;">
+          <h3 style="margin:0;">Monitoring & Logs</h3>
+          <div class="row">
+            <button id="loadApiLogsBtn" class="btn-secondary">API Logs</button>
+            <button id="loadErrorLogsBtn" class="btn-secondary">Error Logs</button>
+          </div>
+        </div>
+        <div style="overflow:auto; margin-top:10px;">
+          <table>
+            <thead><tr id="logsHead"></tr></thead>
+            <tbody id="logsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      apiBase: "http://0.0.0.0:8000",
+      token: localStorage.getItem("adminToken") || "",
+      users: [],
+      apis: [],
+      stats: null,
+      serviceActive: true,
+      globalLlmEnabled: true
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const show = (id) => $(id).classList.remove("hidden");
+    const hide = (id) => $(id).classList.add("hidden");
+
+    function setMsg(elId, text, type = "success") {
+      const el = $(elId);
+      if (!text) { el.innerHTML = ""; return; }
+      el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+    }
+
+    async function api(path, opts = {}) {
+      const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+      if (state.token) headers.Authorization = `Bearer ${state.token}`;
+      const res = await fetch(`${state.apiBase}${path}`, { ...opts, headers });
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) {
+        throw new Error(data.detail || data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll(".tab").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tabName));
+      document.querySelectorAll(".tab-pane").forEach(p => p.classList.add("hidden"));
+      show(`${tabName}Tab`);
+    }
+
+    function renderStats() {
+      if (!state.stats) return;
+      $("mTotalUsers").textContent = state.stats.total_users ?? 0;
+      $("mActiveUsers").textContent = state.stats.active_users ?? 0;
+      $("mApiReq").textContent = state.stats.total_api_requests ?? 0;
+      $("mLlmReq").textContent = state.stats.total_llm_requests ?? 0;
+    }
+
+    function statusTag(value) {
+      return value
+        ? `<span class="status ok">ON</span>`
+        : `<span class="status off">OFF</span>`;
+    }
+
+    function renderUsers() {
+      const body = $("usersBody");
+      body.innerHTML = state.users.map(u => `
+        <tr>
+          <td>${u.username}</td>
+          <td>${u.created_at ? new Date(u.created_at).toLocaleString() : "-"}</td>
+          <td>${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "-"}</td>
+          <td>${u.api_usage_count ?? 0}</td>
+          <td>${u.llm_request_count ?? 0}</td>
+          <td>${statusTag(u.is_active)}</td>
+          <td>${statusTag(u.llm_enabled)}</td>
+          <td>
+            <input id="limit-${u.id}" type="number" min="0" value="${u.daily_limit ?? 0}" style="max-width:95px;" />
+          </td>
+          <td>
+            <div class="row">
+              <button class="btn-secondary" onclick="toggleUser(${u.id}, ${!u.is_active})">${u.is_active ? "Disable" : "Enable"}</button>
+              <button class="btn-secondary" onclick="toggleUserLlm(${u.id}, ${!u.llm_enabled})">${u.llm_enabled ? "LLM Off" : "LLM On"}</button>
+              <button class="btn-primary" onclick="saveLimit(${u.id})">Save Limit</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function renderApis() {
+      const body = $("apisBody");
+      body.innerHTML = state.apis.map(a => `
+        <tr>
+          <td>${a.endpoint_key}</td>
+          <td>${statusTag(a.is_enabled)}</td>
+          <td>
+            <button class="btn-secondary" onclick="toggleApi('${a.endpoint_key}', ${!a.is_enabled})">
+              ${a.is_enabled ? "Disable" : "Enable"}
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadUsers() {
+      const data = await api("/admin/users");
+      state.users = data.items || [];
+      renderUsers();
+    }
+
+    async function loadApis() {
+      const data = await api("/admin/apis");
+      state.apis = data.items || [];
+      renderApis();
+    }
+
+    async function loadStats() {
+      state.stats = await api("/admin/stats");
+      renderStats();
+    }
+
+    async function loadApiLogs() {
+      const data = await api("/admin/logs/api?limit=120");
+      $("logsHead").innerHTML = "<th>Time</th><th>User</th><th>Endpoint</th><th>Method</th><th>Status</th><th>LLM</th>";
+      $("logsBody").innerHTML = (data.items || []).map(r => `
+        <tr>
+          <td>${r.created_at ? new Date(r.created_at).toLocaleString() : "-"}</td>
+          <td>${r.username || "-"}</td>
+          <td>${r.endpoint_key || "-"}</td>
+          <td>${r.method || "-"}</td>
+          <td>${r.status_code || "-"}</td>
+          <td>${statusTag((r.is_llm || "").toLowerCase() === "true")}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadErrorLogs() {
+      const data = await api("/admin/logs/errors?limit=120");
+      $("logsHead").innerHTML = "<th>Time</th><th>Level</th><th>Source</th><th>Message</th>";
+      $("logsBody").innerHTML = (data.items || []).map(r => `
+        <tr>
+          <td>${r.created_at ? new Date(r.created_at).toLocaleString() : "-"}</td>
+          <td>${r.level || "-"}</td>
+          <td>${r.source || "-"}</td>
+          <td>${r.message || "-"}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function refreshAll() {
+      await Promise.all([loadStats(), loadUsers(), loadApis(), loadApiLogs()]);
+      setMsg("overviewMsg", "Dashboard refreshed");
+    }
+
+    async function toggleUser(userId, isActive) {
+      try {
+        await api(`/admin/users/${userId}/status`, { method: "PATCH", body: JSON.stringify({ is_active: isActive }) });
+        await loadUsers();
+        setMsg("usersMsg", `User ${isActive ? "enabled" : "disabled"} successfully`);
+      } catch (e) {
+        setMsg("usersMsg", e.message, "error");
+      }
+    }
+
+    async function toggleUserLlm(userId, llmEnabled) {
+      try {
+        await api(`/admin/users/${userId}/llm`, { method: "PATCH", body: JSON.stringify({ llm_enabled: llmEnabled }) });
+        await loadUsers();
+        setMsg("usersMsg", `LLM ${llmEnabled ? "enabled" : "disabled"} for user`);
+      } catch (e) {
+        setMsg("usersMsg", e.message, "error");
+      }
+    }
+
+    async function saveLimit(userId) {
+      try {
+        const dailyLimit = Number($(`limit-${userId}`).value || "0");
+        await api(`/admin/users/${userId}/limit`, { method: "PATCH", body: JSON.stringify({ daily_limit: dailyLimit }) });
+        await loadUsers();
+        setMsg("usersMsg", "Daily limit updated");
+      } catch (e) {
+        setMsg("usersMsg", e.message, "error");
+      }
+    }
+
+    async function toggleApi(endpointKey, isEnabled) {
+      try {
+        await api(`/admin/apis/${encodeURIComponent(endpointKey)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ is_enabled: isEnabled })
+        });
+        await loadApis();
+        setMsg("apisMsg", `API ${isEnabled ? "enabled" : "disabled"}`);
+      } catch (e) {
+        setMsg("apisMsg", e.message, "error");
+      }
+    }
+
+    async function toggleGlobalLlm() {
+      try {
+        state.globalLlmEnabled = !state.globalLlmEnabled;
+        await api("/admin/settings/llm-global", {
+          method: "PATCH",
+          body: JSON.stringify({ enabled: state.globalLlmEnabled })
+        });
+        setMsg("overviewMsg", `Global LLM ${state.globalLlmEnabled ? "enabled" : "disabled"}`);
+      } catch (e) {
+        state.globalLlmEnabled = !state.globalLlmEnabled;
+        setMsg("overviewMsg", e.message, "error");
+      }
+    }
+
+    async function toggleService() {
+      const code = prompt("Enter activation code", "8668317759");
+      if (!code) return;
+      try {
+        state.serviceActive = !state.serviceActive;
+        await api("/admin/settings/service-activation", {
+          method: "PATCH",
+          body: JSON.stringify({ service_active: state.serviceActive, activation_code: code })
+        });
+        setMsg("overviewMsg", `Service ${state.serviceActive ? "activated" : "deactivated"}`);
+      } catch (e) {
+        state.serviceActive = !state.serviceActive;
+        setMsg("overviewMsg", e.message, "error");
+      }
+    }
+
+    async function doLogin() {
+      const username = $("adminUsername").value.trim();
+      const password = $("adminPassword").value.trim();
+      state.apiBase = $("apiBase").value.trim().replace(/\/+$/, "");
+      try {
+        const data = await fetch(`${state.apiBase}/admin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        }).then(async r => {
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+          return j;
+        });
+        state.token = data.access_token;
+        localStorage.setItem("adminToken", state.token);
+        hide("loginView");
+        show("dashboardView");
+        await refreshAll();
+      } catch (e) {
+        setMsg("loginMsg", e.message, "error");
+      }
+    }
+
+    function doLogout() {
+      state.token = "";
+      localStorage.removeItem("adminToken");
+      hide("dashboardView");
+      show("loginView");
+    }
+
+    window.toggleUser = toggleUser;
+    window.toggleUserLlm = toggleUserLlm;
+    window.saveLimit = saveLimit;
+    window.toggleApi = toggleApi;
+
+    document.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+    $("loginBtn").addEventListener("click", doLogin);
+    $("logoutBtn").addEventListener("click", doLogout);
+    $("refreshAllBtn").addEventListener("click", refreshAll);
+    $("toggleGlobalLlmBtn").addEventListener("click", toggleGlobalLlm);
+    $("toggleServiceBtn").addEventListener("click", toggleService);
+    $("loadApiLogsBtn").addEventListener("click", loadApiLogs);
+    $("loadErrorLogsBtn").addEventListener("click", loadErrorLogs);
+
+    if (state.token) {
+      hide("loginView");
+      show("dashboardView");
+      refreshAll().catch(() => {
+        doLogout();
+      });
+    }
+  </script>
+</body>
+</html>

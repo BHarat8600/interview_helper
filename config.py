@@ -72,6 +72,19 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
 
+    admin_username: str = Field(default="admin", alias="ADMIN_USERNAME")
+    admin_password: str = Field(default="admin@123", alias="ADMIN_PASSWORD")
+    admin_jwt_secret_key: str = Field(default="change-admin-secret-in-env", alias="ADMIN_JWT_SECRET_KEY")
+    admin_jwt_expire_minutes: int = 60
+
+    admin_alert_email: str = Field(default="stalinade05@gmail.com", alias="ADMIN_ALERT_EMAIL")
+    smtp_host: str = Field(default="", alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_username: str = Field(default="", alias="SMTP_USERNAME")
+    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
+    smtp_from_email: str = Field(default="", alias="SMTP_FROM_EMAIL")
+    smtp_use_tls: bool = Field(default=True, alias="SMTP_USE_TLS")
+
 
 settings = Settings()
 

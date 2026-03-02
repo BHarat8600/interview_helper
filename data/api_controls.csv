@@ -1,0 +1,7 @@
+endpoint_key,is_enabled,updated_at
+auth.signup,true,2026-03-02T20:10:40.624756+00:00
+auth.login,true,2026-03-02T20:10:40.624756+00:00
+auth.me,true,2026-03-02T20:10:40.624756+00:00
+chat.respond,true,2026-03-02T20:10:40.624756+00:00
+chat.history,true,2026-03-02T20:10:40.624756+00:00
+process.audio,true,2026-03-02T20:10:40.624756+00:00

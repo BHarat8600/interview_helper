@@ -79,6 +79,11 @@ def get_user_by_username(username: str) -> CsvUser | None:
     return None
 
 
+def list_users() -> list[CsvUser]:
+    with _lock:
+        return _read_users()
+
+
 def create_user(username: str, password_hash: str) -> CsvUser:
     with _lock:
         users = _read_users()
