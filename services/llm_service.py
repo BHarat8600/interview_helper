@@ -33,16 +33,19 @@ class LLMService:
         user_prompt = (
             "Interview question:\n"
             f"{transcription}\n\n"
-            "Answer as if you are explaining this to an interviewer. "
-            "Keep it short, clear, cover each part of question and easy to explain in an interview."
-            "coding part should in *** code ****"
+            "Answer as if you are explaining to an interviewer. "
+            "Keep it short, clear, and cover each part of the question. "
+            "If code is required, return code in markdown fenced blocks with language tags "
+            "(for example: ```python, ```sql, ```javascript). "
+            "Preserve exact indentation in code. "
+            "For coding questions, do not inline code in plain text."
         )
         try:
             response = await asyncio.wait_for(
                 client.chat.completions.create(
                     model=settings.groq_llm_model,
                     temperature=0.2,
-                    max_tokens=180,
+                    max_tokens=450,
                     messages=[
                         {"role": "system", "content": settings.llm_system_prompt},
                         {"role": "user", "content": user_prompt},
@@ -80,13 +83,93 @@ class LLMService:
                 detail="LLM returned empty answer.",
             )
 
-        return self._limit_sentences(content, max_sentences=4)
+        return self._format_response(content, max_sentences=4)
 
     @staticmethod
     def _limit_sentences(text: str, max_sentences: int = 4) -> str:
-        cleaned = " ".join(text.split())
+        cleaned = re.sub(r"\s+", " ", text).strip()
         parts = re.split(r"(?<=[.!?])\s+", cleaned)
         parts = [p.strip() for p in parts if p.strip()]
         if len(parts) <= max_sentences:
             return cleaned
         return " ".join(parts[:max_sentences]).strip()
+
+    @staticmethod
+    def _normalize_prose(text: str, max_sentences: int = 4) -> str:
+        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+        if not paragraphs:
+            return ""
+        normalized = [LLMService._limit_sentences(p, max_sentences=max_sentences) for p in paragraphs]
+        return "\n\n".join(normalized).strip()
+
+    @staticmethod
+    def _format_response(text: str, max_sentences: int = 4) -> str:
+        normalized = text.replace("\r\n", "\n").strip()
+        if LLMService._looks_like_unfenced_code(normalized):
+            return LLMService._ensure_fenced_code(normalized)
+
+        if "```" not in normalized:
+            return LLMService._normalize_prose(normalized, max_sentences=max_sentences)
+
+        parts = normalized.split("```")
+        rebuilt: list[str] = []
+        for idx, part in enumerate(parts):
+            if idx % 2 == 0:
+                prose = LLMService._normalize_prose(part, max_sentences=max_sentences)
+                if prose:
+                    rebuilt.append(prose)
+            else:
+                code_block = part.strip("\n")
+                if code_block:
+                    rebuilt.append(f"```{code_block}```")
+        return "\n\n".join(rebuilt).strip()
+
+    @staticmethod
+    def _looks_like_unfenced_code(text: str) -> bool:
+        if not text or "```" in text:
+            return False
+
+        lowered = text.lower()
+        language_markers = ("python", "sql", "javascript", "js", "nodejs", "typescript", "java", "c++", "cpp")
+        has_language = any(marker in lowered for marker in language_markers)
+        code_tokens = (
+            "def ",
+            "class ",
+            "import ",
+            "select ",
+            "from ",
+            "where ",
+            "function ",
+            "const ",
+            "let ",
+            "var ",
+            "=>",
+            "{",
+            "}",
+            ";",
+        )
+        has_code_tokens = sum(token in lowered for token in code_tokens) >= 2
+        return has_language and has_code_tokens
+
+    @staticmethod
+    def _ensure_fenced_code(text: str) -> str:
+        lowered = text.lower().lstrip()
+        lang = ""
+        for candidate in ("python", "sql", "javascript", "js", "nodejs", "typescript", "java", "cpp", "c++"):
+            if lowered.startswith(candidate):
+                lang = "javascript" if candidate in {"js", "nodejs"} else ("cpp" if candidate == "c++" else candidate)
+                text = text[len(candidate) :].lstrip(" :\n\t")
+                break
+
+        if not lang:
+            if any(word in lowered for word in ("select ", "insert ", "update ", "delete ", "create table")):
+                lang = "sql"
+            elif any(word in lowered for word in ("def ", "import ", "print(", "lambda ")):
+                lang = "python"
+            elif any(word in lowered for word in ("function ", "const ", "let ", "=>", "console.log")):
+                lang = "javascript"
+
+        cleaned = text.strip()
+        if not cleaned:
+            return ""
+        return f"```{lang}\n{cleaned}\n```" if lang else f"```\n{cleaned}\n```"
