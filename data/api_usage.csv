@@ -13,3 +13,17 @@ id,user_id,username,endpoint_key,path,method,status_code,is_llm,created_at
 12,,,admin.get,/admin/stats,GET,200,false,2026-03-02T20:20:12.980949+00:00
 13,,,admin.get,/admin/apis,GET,200,false,2026-03-02T20:20:12.982708+00:00
 14,,,admin.get,/admin/logs/api,GET,200,false,2026-03-02T20:20:12.983774+00:00
+15,,,get:/,/,GET,404,false,2026-03-07T19:14:29.356458+00:00
+16,,,get:/favicon.ico,/favicon.ico,GET,404,false,2026-03-07T19:14:29.458232+00:00
+17,,,get:/docs,/docs,GET,200,false,2026-03-07T19:14:34.304032+00:00
+18,,,get:/openapi.json,/openapi.json,GET,200,false,2026-03-07T19:14:34.889510+00:00
+19,,,get:/docs,/docs,GET,200,false,2026-03-07T19:20:29.952500+00:00
+20,,,get:/openapi.json,/openapi.json,GET,200,false,2026-03-07T19:20:30.322171+00:00
+21,,,get:/,/,GET,200,false,2026-03-07T19:20:54.438567+00:00
+22,,,admin.post,/admin/login,POST,200,false,2026-03-07T19:21:19.295060+00:00
+23,,,admin.get,/admin/stats,GET,200,false,2026-03-07T19:21:19.358792+00:00
+24,,,admin.get,/admin/users,GET,200,false,2026-03-07T19:21:19.393952+00:00
+25,,,admin.get,/admin/rag/settings,GET,200,false,2026-03-07T19:21:19.420541+00:00
+26,,,admin.get,/admin/rag/profiles,GET,200,false,2026-03-07T19:21:19.450226+00:00
+27,,,admin.get,/admin/apis,GET,200,false,2026-03-07T19:21:19.482105+00:00
+28,,,admin.get,/admin/logs/api,GET,200,false,2026-03-07T19:21:19.527841+00:00

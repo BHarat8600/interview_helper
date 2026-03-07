@@ -6,11 +6,11 @@ from typing import Any
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from admin_routes import router as admin_router
 from auth import create_access_token, decode_token, hash_password, verify_password
-from config import is_groq_key_configured, settings
+from config import BASE_DIR, is_groq_key_configured, settings
 from deps import get_current_user
 from models.schemas import (
     ChatHistoryResponse,
@@ -32,10 +32,12 @@ from storage_admin_csv import (
     append_login_log,
     count_user_llm_requests_today,
     ensure_user_control,
+    get_user_profile,
     get_user_control,
     init_admin_storage,
     is_api_enabled,
     is_global_llm_enabled,
+    is_rag_enabled,
     is_service_active,
     send_admin_alert_email,
 )
@@ -153,6 +155,27 @@ def _enforce_user_access(current_user: CsvUser, endpoint_key: str, requires_llm:
         )
 
 
+def _build_rag_context(user_id: int) -> str | None:
+    if not is_rag_enabled():
+        return None
+    profile = get_user_profile(user_id)
+    if profile is None:
+        return None
+
+    parts: list[str] = []
+    if profile.years_experience:
+        parts.append(f"Experience: {profile.years_experience}")
+    if profile.skills:
+        parts.append(f"Skills: {profile.skills}")
+    if profile.technologies:
+        parts.append(f"Technologies: {profile.technologies}")
+    if profile.projects:
+        parts.append(f"Projects: {profile.projects}")
+    if not parts:
+        return None
+    return "\n".join(parts)
+
+
 @app.on_event("startup")
 async def startup() -> None:
     init_storage()
@@ -231,6 +254,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 @app.get("/health")
 async def health() -> dict[str, Any]:
     return {"status": "ok", "service": settings.app_name}
+
+
+@app.get("/")
+async def admin_portal() -> FileResponse:
+    return FileResponse(BASE_DIR / "admin_portal.html")
 
 
 @app.post("/auth/signup", response_model=UserResponse, responses={400: {"model": ErrorResponse}})
@@ -314,7 +342,10 @@ async def chat_respond(
             detail="GROQ_API_KEY is missing or invalid in backend/.env.",
         )
 
-    answer = await llm_service.generate_short_answer(payload.message)
+    answer = await llm_service.generate_short_answer(
+        payload.message,
+        profile_context=_build_rag_context(current_user.id),
+    )
 
     append_chat_message(user_id=current_user.id, role="user", content=payload.message)
     append_chat_message(user_id=current_user.id, role="assistant", content=answer)
@@ -386,7 +417,10 @@ async def process_audio(
         )
 
     transcription = await transcription_service.transcribe_audio(audio.filename, audio_bytes)
-    answer = await llm_service.generate_short_answer(transcription)
+    answer = await llm_service.generate_short_answer(
+        transcription,
+        profile_context=_build_rag_context(current_user.id),
+    )
 
     append_chat_message(user_id=current_user.id, role="user", content=transcription)
     append_chat_message(user_id=current_user.id, role="assistant", content=answer)

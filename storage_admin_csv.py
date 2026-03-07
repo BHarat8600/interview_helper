@@ -19,11 +19,13 @@ ERROR_LOGS_CSV = DATA_DIR / "error_logs.csv"
 LOGIN_LOGS_CSV = DATA_DIR / "login_logs.csv"
 GLOBAL_SETTINGS_CSV = DATA_DIR / "global_settings.csv"
 API_CONTROLS_CSV = DATA_DIR / "api_controls.csv"
+USER_PROFILES_CSV = DATA_DIR / "user_profiles.csv"
 
 _lock = Lock()
 
 DEFAULT_SETTINGS = {
     "llm_global_enabled": "true",
+    "rag_enabled": "false",
     "service_active": "true",
     "service_activation_code": "8668317759",
     "alert_email": "stalinade05@gmail.com",
@@ -48,6 +50,16 @@ class UserControl:
     updated_at: datetime
 
 
+@dataclass
+class UserProfile:
+    user_id: int
+    years_experience: str
+    skills: str
+    technologies: str
+    projects: str
+    updated_at: datetime
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -60,6 +72,16 @@ def _as_bool(value: str, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_datetime_safe(value: str) -> datetime:
+    raw = (value or "").strip()
+    if not raw:
+        return datetime.now(UTC)
+    try:
+        return _parse_datetime(raw)
+    except Exception:
+        return datetime.now(UTC)
 
 
 def init_admin_storage() -> None:
@@ -110,6 +132,13 @@ def init_admin_storage() -> None:
             now = _now_iso()
             for endpoint_key in DEFAULT_API_CONTROLS:
                 writer.writerow({"endpoint_key": endpoint_key, "is_enabled": "true", "updated_at": now})
+    if not USER_PROFILES_CSV.exists():
+        with USER_PROFILES_CSV.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["user_id", "years_experience", "skills", "technologies", "projects", "updated_at"],
+            )
+            writer.writeheader()
 
 
 def _read_user_controls() -> list[UserControl]:
@@ -539,3 +568,115 @@ def send_admin_alert_email(subject: str, body: str) -> bool:
     except Exception:
         return False
     return True
+
+
+def _read_user_profiles() -> list[UserProfile]:
+    rows: list[UserProfile] = []
+    if not USER_PROFILES_CSV.exists():
+        return rows
+    with USER_PROFILES_CSV.open("r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for r in reader:
+            if not r.get("user_id", "").strip():
+                continue
+            rows.append(
+                UserProfile(
+                    user_id=int(r["user_id"]),
+                    years_experience=r.get("years_experience", "").strip(),
+                    skills=r.get("skills", "").strip(),
+                    technologies=r.get("technologies", "").strip(),
+                    projects=r.get("projects", "").strip(),
+                    updated_at=_parse_datetime_safe(r.get("updated_at", "")),
+                )
+            )
+    return rows
+
+
+def _write_user_profiles(rows: list[UserProfile]) -> None:
+    with USER_PROFILES_CSV.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["user_id", "years_experience", "skills", "technologies", "projects", "updated_at"],
+        )
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(
+                {
+                    "user_id": str(row.user_id),
+                    "years_experience": row.years_experience,
+                    "skills": row.skills,
+                    "technologies": row.technologies,
+                    "projects": row.projects,
+                    "updated_at": row.updated_at.isoformat(),
+                }
+            )
+
+
+def get_user_profile(user_id: int) -> UserProfile | None:
+    with _lock:
+        rows = _read_user_profiles()
+    for row in rows:
+        if row.user_id == user_id:
+            return row
+    return None
+
+
+def list_user_profiles() -> list[UserProfile]:
+    with _lock:
+        rows = _read_user_profiles()
+    rows.sort(key=lambda x: x.user_id)
+    return rows
+
+
+def upsert_user_profile(
+    user_id: int,
+    years_experience: str,
+    skills: str,
+    technologies: str,
+    projects: str,
+) -> UserProfile:
+    with _lock:
+        rows = _read_user_profiles()
+        now = datetime.now(UTC)
+        for idx, row in enumerate(rows):
+            if row.user_id == user_id:
+                updated = UserProfile(
+                    user_id=user_id,
+                    years_experience=years_experience.strip(),
+                    skills=skills.strip(),
+                    technologies=technologies.strip(),
+                    projects=projects.strip(),
+                    updated_at=now,
+                )
+                rows[idx] = updated
+                _write_user_profiles(rows)
+                return updated
+        created = UserProfile(
+            user_id=user_id,
+            years_experience=years_experience.strip(),
+            skills=skills.strip(),
+            technologies=technologies.strip(),
+            projects=projects.strip(),
+            updated_at=now,
+        )
+        rows.append(created)
+        _write_user_profiles(rows)
+        return created
+
+
+def delete_user_profile(user_id: int) -> bool:
+    with _lock:
+        rows = _read_user_profiles()
+        filtered = [row for row in rows if row.user_id != user_id]
+        deleted = len(filtered) != len(rows)
+        if deleted:
+            _write_user_profiles(filtered)
+    return deleted
+
+
+def is_rag_enabled() -> bool:
+    return _as_bool(get_setting("rag_enabled", "false"), default=False)
+
+
+def set_rag_enabled(enabled: bool) -> None:
+    set_setting("rag_enabled", "true" if enabled else "false")

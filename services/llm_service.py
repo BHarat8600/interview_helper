@@ -14,7 +14,7 @@ class LLMService:
     def __init__(self) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    async def generate_short_answer(self, transcription: str) -> str:
+    async def generate_short_answer(self, transcription: str, profile_context: str | None = None) -> str:
         if not transcription.strip():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -30,11 +30,20 @@ class LLMService:
         # )
 
     ###=============update on 02-28-2026 =========================
+        context_block = ""
+        if profile_context and profile_context.strip():
+            context_block = (
+                "Candidate background context (use this only to personalize examples and framing):\n"
+                f"{profile_context.strip()}\n\n"
+            )
+
         user_prompt = (
+            f"{context_block}"
             "Interview question:\n"
             f"{transcription}\n\n"
             "Answer as if you are explaining to an interviewer. "
-            "Keep it short, clear, and cover each part of the question. "
+            "Keep it concise and interview-ready in 3-4 short lines while fully covering the concept. "
+            "Use the candidate background context when provided. "
             "If code is required, return code in markdown fenced blocks with language tags "
             "(for example: ```python, ```sql, ```javascript). "
             "Preserve exact indentation in code. "

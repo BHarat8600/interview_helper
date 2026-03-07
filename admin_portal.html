@@ -83,7 +83,7 @@
       font-size: 0.9rem;
     }
 
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: 10px 12px;
       border-radius: 10px;
@@ -92,6 +92,7 @@
       background: #fff;
       color: var(--ink);
     }
+    textarea { min-height: 84px; resize: vertical; }
 
     button {
       font: inherit;
@@ -227,6 +228,7 @@
       <div class="tabs">
         <button class="tab active" data-tab="overview">Overview</button>
         <button class="tab" data-tab="users">Users</button>
+        <button class="tab" data-tab="rag">RAG</button>
         <button class="tab" data-tab="apis">APIs</button>
         <button class="tab" data-tab="logs">Logs</button>
       </div>
@@ -271,6 +273,42 @@
         <div id="usersMsg"></div>
       </div>
 
+      <div id="ragTab" class="card tab-pane hidden">
+        <div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+          <h3 style="margin:0;">Interview RAG Management</h3>
+          <button id="toggleRagBtn" class="btn-secondary">Toggle RAG</button>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <strong>Current status:</strong> <span id="ragStatus" class="status off">OFF</span>
+        </div>
+        <div class="field">
+          <label>User</label>
+          <select id="ragUserSelect"></select>
+        </div>
+        <div class="field">
+          <label>Years of Experience</label>
+          <input id="ragYearsExperience" placeholder="e.g. 5 years" />
+        </div>
+        <div class="field">
+          <label>Skills (comma-separated)</label>
+          <textarea id="ragSkills" placeholder="Python, Machine Learning, MLOps"></textarea>
+        </div>
+        <div class="field">
+          <label>Technologies (comma-separated)</label>
+          <textarea id="ragTechnologies" placeholder="FastAPI, LangChain, Docker"></textarea>
+        </div>
+        <div class="field">
+          <label>Projects (comma-separated or lines)</label>
+          <textarea id="ragProjects" placeholder="OCR Pipeline, Document AI System"></textarea>
+        </div>
+        <div class="row">
+          <button id="loadRagProfileBtn" class="btn-secondary">Load Profile</button>
+          <button id="saveRagProfileBtn" class="btn-primary">Save Profile</button>
+          <button id="deleteRagProfileBtn" class="btn-danger">Delete Profile</button>
+        </div>
+        <div id="ragMsg"></div>
+      </div>
+
       <div id="apisTab" class="card tab-pane hidden">
         <h3 style="margin:0 0 10px;">API Controls</h3>
         <div style="overflow:auto;">
@@ -310,7 +348,9 @@
       apis: [],
       stats: null,
       serviceActive: true,
-      globalLlmEnabled: true
+      globalLlmEnabled: true,
+      ragEnabled: false,
+      ragProfiles: {}
     };
 
     const $ = (id) => document.getElementById(id);
@@ -395,16 +435,59 @@
       `).join("");
     }
 
+    function renderRagState() {
+      const status = $("ragStatus");
+      status.textContent = state.ragEnabled ? "ON" : "OFF";
+      status.className = `status ${state.ragEnabled ? "ok" : "off"}`;
+
+      const select = $("ragUserSelect");
+      const currentValue = Number(select.value || "0");
+      select.innerHTML = state.users.map(u => `<option value="${u.id}">${u.username} (ID: ${u.id})</option>`).join("");
+      if (!state.users.length) {
+        select.innerHTML = `<option value="">No users found</option>`;
+        return;
+      }
+
+      const fallbackId = state.users[0].id;
+      const selectedId = state.users.some(u => u.id === currentValue) ? currentValue : fallbackId;
+      select.value = String(selectedId);
+      fillRagFormFromProfile(selectedId);
+    }
+
+    function fillRagFormFromProfile(userId) {
+      const profile = state.ragProfiles[userId] || {};
+      $("ragYearsExperience").value = profile.years_experience || "";
+      $("ragSkills").value = profile.skills || "";
+      $("ragTechnologies").value = profile.technologies || "";
+      $("ragProjects").value = profile.projects || "";
+    }
+
     async function loadUsers() {
       const data = await api("/admin/users");
       state.users = data.items || [];
       renderUsers();
+      renderRagState();
     }
 
     async function loadApis() {
       const data = await api("/admin/apis");
       state.apis = data.items || [];
       renderApis();
+    }
+
+    async function loadRagSettings() {
+      const data = await api("/admin/rag/settings");
+      state.ragEnabled = Boolean(data.enabled);
+      renderRagState();
+    }
+
+    async function loadRagProfiles() {
+      const data = await api("/admin/rag/profiles");
+      state.ragProfiles = {};
+      (data.items || []).forEach(p => {
+        state.ragProfiles[p.user_id] = p;
+      });
+      renderRagState();
     }
 
     async function loadStats() {
@@ -441,7 +524,7 @@
     }
 
     async function refreshAll() {
-      await Promise.all([loadStats(), loadUsers(), loadApis(), loadApiLogs()]);
+      await Promise.all([loadStats(), loadUsers(), loadApis(), loadRagSettings(), loadRagProfiles(), loadApiLogs()]);
       setMsg("overviewMsg", "Dashboard refreshed");
     }
 
@@ -519,6 +602,68 @@
       }
     }
 
+    async function toggleRag() {
+      try {
+        state.ragEnabled = !state.ragEnabled;
+        await api("/admin/rag/settings", {
+          method: "PATCH",
+          body: JSON.stringify({ enabled: state.ragEnabled })
+        });
+        renderRagState();
+        setMsg("ragMsg", `RAG ${state.ragEnabled ? "enabled" : "disabled"} successfully`);
+      } catch (e) {
+        state.ragEnabled = !state.ragEnabled;
+        setMsg("ragMsg", e.message, "error");
+      }
+    }
+
+    async function loadSelectedRagProfile() {
+      const userId = Number($("ragUserSelect").value || "0");
+      if (!userId) return;
+      try {
+        const data = await api(`/admin/rag/profiles/${userId}`);
+        state.ragProfiles[userId] = data;
+        fillRagFormFromProfile(userId);
+        setMsg("ragMsg", "Profile loaded");
+      } catch (e) {
+        setMsg("ragMsg", e.message, "error");
+      }
+    }
+
+    async function saveSelectedRagProfile() {
+      const userId = Number($("ragUserSelect").value || "0");
+      if (!userId) return;
+      try {
+        const payload = {
+          years_experience: $("ragYearsExperience").value.trim(),
+          skills: $("ragSkills").value.trim(),
+          technologies: $("ragTechnologies").value.trim(),
+          projects: $("ragProjects").value.trim()
+        };
+        const data = await api(`/admin/rag/profiles/${userId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+        state.ragProfiles[userId] = data;
+        setMsg("ragMsg", "Profile saved");
+      } catch (e) {
+        setMsg("ragMsg", e.message, "error");
+      }
+    }
+
+    async function deleteSelectedRagProfile() {
+      const userId = Number($("ragUserSelect").value || "0");
+      if (!userId) return;
+      try {
+        await api(`/admin/rag/profiles/${userId}`, { method: "DELETE" });
+        delete state.ragProfiles[userId];
+        fillRagFormFromProfile(userId);
+        setMsg("ragMsg", "Profile deleted");
+      } catch (e) {
+        setMsg("ragMsg", e.message, "error");
+      }
+    }
+
     async function doLogin() {
       const username = $("adminUsername").value.trim();
       const password = $("adminPassword").value.trim();
@@ -563,6 +708,13 @@
     $("refreshAllBtn").addEventListener("click", refreshAll);
     $("toggleGlobalLlmBtn").addEventListener("click", toggleGlobalLlm);
     $("toggleServiceBtn").addEventListener("click", toggleService);
+    $("toggleRagBtn").addEventListener("click", toggleRag);
+    $("loadRagProfileBtn").addEventListener("click", loadSelectedRagProfile);
+    $("saveRagProfileBtn").addEventListener("click", saveSelectedRagProfile);
+    $("deleteRagProfileBtn").addEventListener("click", deleteSelectedRagProfile);
+    $("ragUserSelect").addEventListener("change", () => {
+      fillRagFormFromProfile(Number($("ragUserSelect").value || "0"));
+    });
     $("loadApiLogsBtn").addEventListener("click", loadApiLogs);
     $("loadErrorLogsBtn").addEventListener("click", loadErrorLogs);
 

@@ -10,19 +10,25 @@ from pydantic import BaseModel, Field
 
 from config import settings
 from storage_admin_csv import (
+    delete_user_profile,
     get_last_login_at,
+    get_user_profile,
     get_user_control,
     is_api_enabled,
+    is_rag_enabled,
     list_api_controls,
     list_api_usage,
     list_error_logs,
+    list_user_profiles,
     set_activation_code,
     set_api_enabled,
     set_global_llm_enabled,
+    set_rag_enabled,
     set_service_active,
     set_user_active,
     set_user_daily_limit,
     set_user_llm_enabled,
+    upsert_user_profile,
     verify_activation_code,
 )
 from storage_csv import list_users
@@ -69,6 +75,17 @@ class ApiControlUpdate(BaseModel):
     is_enabled: bool
 
 
+class RagSettingsUpdate(BaseModel):
+    enabled: bool
+
+
+class UserProfilePayload(BaseModel):
+    years_experience: str = Field(default="", max_length=256)
+    skills: str = Field(default="", max_length=2000)
+    technologies: str = Field(default="", max_length=2000)
+    projects: str = Field(default="", max_length=4000)
+
+
 def _create_admin_token(subject: str) -> tuple[str, int]:
     expires_delta = timedelta(minutes=settings.admin_jwt_expire_minutes)
     expires_at = datetime.now(UTC) + expires_delta
@@ -101,6 +118,12 @@ async def require_admin(
         return _decode_admin_token(credentials.credentials)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired admin token") from exc
+
+
+def _assert_user_exists(user_id: int) -> None:
+    if any(user.id == user_id for user in list_users()):
+        return
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
 @router.post("/login", response_model=AdminTokenResponse)
@@ -236,3 +259,89 @@ async def admin_stats(_: dict[str, Any] = Depends(require_admin)) -> dict[str, A
         "total_api_requests": len(usage),
         "total_llm_requests": sum(1 for r in usage if r.get("is_llm", "").lower() == "true"),
     }
+
+
+@router.get("/rag/settings")
+async def admin_get_rag_settings(_: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    return {"enabled": is_rag_enabled()}
+
+
+@router.patch("/rag/settings")
+async def admin_update_rag_settings(
+    payload: RagSettingsUpdate,
+    _: dict[str, Any] = Depends(require_admin),
+) -> dict[str, Any]:
+    set_rag_enabled(payload.enabled)
+    return {"enabled": payload.enabled}
+
+
+@router.get("/rag/profiles")
+async def admin_list_rag_profiles(_: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    users = {u.id: u.username for u in list_users()}
+    items: list[dict[str, Any]] = []
+    for profile in list_user_profiles():
+        items.append(
+            {
+                "user_id": profile.user_id,
+                "username": users.get(profile.user_id, ""),
+                "years_experience": profile.years_experience,
+                "skills": profile.skills,
+                "technologies": profile.technologies,
+                "projects": profile.projects,
+                "updated_at": profile.updated_at,
+            }
+        )
+    return {"items": items}
+
+
+@router.get("/rag/profiles/{user_id}")
+async def admin_get_rag_profile(user_id: int, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    _assert_user_exists(user_id)
+    profile = get_user_profile(user_id)
+    if profile is None:
+        return {
+            "user_id": user_id,
+            "years_experience": "",
+            "skills": "",
+            "technologies": "",
+            "projects": "",
+            "updated_at": None,
+        }
+    return {
+        "user_id": profile.user_id,
+        "years_experience": profile.years_experience,
+        "skills": profile.skills,
+        "technologies": profile.technologies,
+        "projects": profile.projects,
+        "updated_at": profile.updated_at,
+    }
+
+
+@router.put("/rag/profiles/{user_id}")
+async def admin_upsert_rag_profile(
+    user_id: int,
+    payload: UserProfilePayload,
+    _: dict[str, Any] = Depends(require_admin),
+) -> dict[str, Any]:
+    _assert_user_exists(user_id)
+    profile = upsert_user_profile(
+        user_id=user_id,
+        years_experience=payload.years_experience,
+        skills=payload.skills,
+        technologies=payload.technologies,
+        projects=payload.projects,
+    )
+    return {
+        "user_id": profile.user_id,
+        "years_experience": profile.years_experience,
+        "skills": profile.skills,
+        "technologies": profile.technologies,
+        "projects": profile.projects,
+        "updated_at": profile.updated_at,
+    }
+
+
+@router.delete("/rag/profiles/{user_id}")
+async def admin_delete_rag_profile(user_id: int, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    _assert_user_exists(user_id)
+    return {"deleted": delete_user_profile(user_id), "user_id": user_id}
