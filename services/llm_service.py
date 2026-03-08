@@ -37,6 +37,19 @@ class LLMService:
                 f"{profile_context.strip()}\n\n"
             )
 
+        coding_required = self._is_explicit_coding_question(transcription)
+        code_instruction = (
+            "The interviewer explicitly asked for coding/implementation. "
+            "Include code in markdown fenced blocks with language tags "
+            "(for example: ```python, ```sql, ```javascript). "
+            "Preserve exact indentation in code. "
+            "For coding questions, do not inline code in plain text."
+            if coding_required
+            else "This is not an explicitly coding request. "
+            "Do NOT include any code, pseudocode, SQL snippets, DAX snippets, or fenced code blocks. "
+            "Return text-only explanation."
+        )
+
         user_prompt = (
             f"{context_block}"
             "Interview question:\n"
@@ -44,10 +57,7 @@ class LLMService:
             "Answer as if you are explaining to an interviewer. "
             "Keep it concise and interview-ready in 3-4 short lines while fully covering the concept. "
             "Use the candidate background context when provided. "
-            "If code is required, return code in markdown fenced blocks with language tags "
-            "(for example: ```python, ```sql, ```javascript). "
-            "Preserve exact indentation in code. "
-            "For coding questions, do not inline code in plain text."
+            f"{code_instruction}"
         )
         try:
             response = await asyncio.wait_for(
@@ -93,6 +103,33 @@ class LLMService:
             )
 
         return self._format_response(content, max_sentences=4)
+
+    @staticmethod
+    def _is_explicit_coding_question(text: str) -> bool:
+        normalized = f" {text.lower()} "
+        explicit_markers = (
+            " code ",
+            " coding ",
+            " implement ",
+            " implementation ",
+            " write a program ",
+            " write a function ",
+            " write code ",
+            " python ",
+            " javascript ",
+            " js ",
+            " java ",
+            " c++ ",
+            " c# ",
+            " sql ",
+            " query ",
+            " dax ",
+            " script ",
+            " algorithm ",
+            " pseudocode ",
+            "leetcode",
+        )
+        return any(marker in normalized for marker in explicit_markers)
 
     @staticmethod
     def _limit_sentences(text: str, max_sentences: int = 4) -> str:
